@@ -109,3 +109,26 @@ public static class RecognizerConfigTypes
         return $"plugin.{pluginId}.config";
     }
 }
+
+public static class TranslationConfigTypes
+{
+    public const string SectionName = "translation";
+
+    public const string Enabled = "translation.Enabled";
+    public const string Translator = "translation.source";
+    public const string SaveTranslationToLog = "translation.SaveTranslationToLog";
+
+    private static Dictionary<string, object> _defaultConfig => new()
+    {
+        { Enabled, false },
+        { Translator, "" },
+        { SaveTranslationToLog, true }
+    };
+
+    public static Dictionary<string, object> DefaultConfig => _defaultConfig;
+
+    public static string GetPluginConfigKey(string pluginId)
+    {
+        return $"plugin.{pluginId}.config";
+    }
+}

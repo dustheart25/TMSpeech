@@ -64,10 +64,12 @@ namespace TMSpeech.Core
 
         private IAudioSource? _audioSource;
         private IRecognizer? _recognizer;
+        private ITranslator? _translator;
         private HashSet<string> _sensitiveWords;
         private bool _disableInThisSentence = false;
         private string logFile;
         private string currentText = "";
+        private readonly object _logLock = new();
 
         private void InitAudioSource()
         {
@@ -119,6 +121,64 @@ namespace TMSpeech.Core
             }
         }
 
+        private void InitTranslator()
+        {
+            _translator = null;
+            if (!ConfigManagerFactory.Instance.Get<bool>(TranslationConfigTypes.Enabled)) return;
+
+            var configTranslator = ConfigManagerFactory.Instance.Get<string>(TranslationConfigTypes.Translator);
+            if (string.IsNullOrEmpty(configTranslator))
+            {
+                if (_pluginManager.Translators.Count == 0) return;
+                configTranslator = _pluginManager.Translators.Keys.First();
+            }
+
+            if (!_pluginManager.Translators.TryGetValue(configTranslator, out var translator))
+            {
+                NotificationManager.Instance.Notify("翻译器初始化失败：找不到已配置的翻译器", "翻译器为空", NotificationType.Warning);
+                return;
+            }
+
+            var config = ConfigManagerFactory.Instance.Get<string>(TranslationConfigTypes.GetPluginConfigKey(configTranslator));
+            translator.LoadConfig(config);
+            _translator = translator;
+        }
+
+        private void AppendRecognitionLog(string text)
+        {
+            if (logFile == null || logFile.Length == 0) return;
+
+            lock (_logLock)
+            {
+                File.AppendAllText(logFile, string.Format("{0:T}: {1}\n", DateTime.Now, text));
+            }
+        }
+
+        private void TranslateSentenceInBackground(string originalText)
+        {
+            var translator = _translator;
+            if (translator == null || string.IsNullOrWhiteSpace(originalText)) return;
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    var translatedText = translator.Translate(originalText)?.Trim();
+                    if (string.IsNullOrWhiteSpace(translatedText)) return;
+
+                    if (ConfigManagerFactory.Instance.Get<bool>(TranslationConfigTypes.SaveTranslationToLog))
+                    {
+                        AppendRecognitionLog($"译文: {translatedText}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    NotificationManager.Instance.Notify($"翻译失败：\n{ex.Message}", "翻译失败", NotificationType.Warning);
+                    System.Diagnostics.Debug.WriteLine($"Failed to translate recognition text: {ex.Message}");
+                }
+            });
+        }
+
         private void OnRecognizerOnSentenceDone(object? sender, SpeechEventArgs args)
         {
             // Save the sentense to log
@@ -126,7 +186,7 @@ namespace TMSpeech.Core
             {
                 try
                 {
-                    File.AppendAllText(logFile, string.Format("{0:T}: {1}\n", DateTime.Now, args.Text.Text));
+                    AppendRecognitionLog(args.Text.Text);
                 }
                 catch (Exception ex)
                 {
@@ -142,6 +202,7 @@ namespace TMSpeech.Core
 
             _disableInThisSentence = false;
             OnSentenceDone(args);
+            TranslateSentenceInBackground(args.Text.Text);
             currentText = "";
         }
 
@@ -166,6 +227,7 @@ namespace TMSpeech.Core
             InitSensitiveWords();
             InitAudioSource();
             InitRecognizer();
+            InitTranslator();
 
             if (_audioSource == null || _recognizer == null)
             {
@@ -284,6 +346,7 @@ namespace TMSpeech.Core
 
             _audioSource = null;
             _recognizer = null;
+            _translator = null;
         }
 
         public override void Start()

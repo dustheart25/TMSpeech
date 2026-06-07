@@ -155,6 +155,7 @@ namespace TMSpeech.GUI.ViewModels
 
         public AudioSectionConfigViewModel AudioSectionConfig { get; } = new AudioSectionConfigViewModel();
         public RecognizeSectionConfigViewModel RecognizeSectionConfig { get; } = new RecognizeSectionConfigViewModel();
+        public TranslationSectionConfigViewModel TranslationSectionConfig { get; } = new TranslationSectionConfigViewModel();
         public NotificationConfigViewModel NotificationConfig { get; } = new NotificationConfigViewModel();
 
         [ObservableAsProperty]
@@ -483,6 +484,121 @@ namespace TMSpeech.GUI.ViewModels
                     {
                         ConfigManagerFactory.Instance.Apply(
                             RecognizerConfigTypes.GetPluginConfigKey(Recognizer),
+                            config
+                        );
+                    }
+                });
+        }
+    }
+
+    public class TranslationSectionConfigViewModel : SectionConfigViewModelBase
+    {
+        protected override string SectionName => "";
+
+        [Reactive]
+        [ConfigJsonValue(TranslationConfigTypes.Enabled)]
+        public bool Enabled { get; set; } = false;
+
+        [Reactive]
+        [ConfigJsonValue(TranslationConfigTypes.SaveTranslationToLog)]
+        public bool SaveTranslationToLog { get; set; } = true;
+
+        [Reactive]
+        [ConfigJsonValue(TranslationConfigTypes.Translator)]
+        public string Translator { get; set; } = "";
+
+        [ObservableAsProperty]
+        public IReadOnlyDictionary<string, Core.Plugins.ITranslator> TranslatorsAvailable { get; }
+
+        [ObservableAsProperty]
+        public IPluginConfigEditor? ConfigEditor { get; }
+
+        [Reactive]
+        public string PluginConfig { get; set; } = "";
+
+        public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+
+        public IReadOnlyDictionary<string, Core.Plugins.ITranslator> Refresh()
+        {
+            var plugins = Core.Plugins.PluginManagerFactory.GetInstance().Translators;
+            if (Translator == "" && plugins.Count >= 1)
+                Translator = plugins.First().Key;
+            return plugins;
+        }
+
+        public override Dictionary<string, object> Serialize()
+        {
+            return new Dictionary<string, object>
+            {
+                { TranslationConfigTypes.Enabled, Enabled },
+                { TranslationConfigTypes.Translator, Translator },
+                { TranslationConfigTypes.SaveTranslationToLog, SaveTranslationToLog },
+            };
+        }
+
+        public override void Deserialize(IReadOnlyDictionary<string, object> dict)
+        {
+            if (dict.ContainsKey(TranslationConfigTypes.Enabled))
+            {
+                Enabled = (bool)(ChangeType(dict[TranslationConfigTypes.Enabled], typeof(bool)) ?? false);
+            }
+
+            if (dict.ContainsKey(TranslationConfigTypes.Translator))
+            {
+                Translator = dict[TranslationConfigTypes.Translator]?.ToString() ?? "";
+            }
+
+            if (dict.ContainsKey(TranslationConfigTypes.SaveTranslationToLog))
+            {
+                SaveTranslationToLog = (bool)(ChangeType(dict[TranslationConfigTypes.SaveTranslationToLog], typeof(bool)) ?? true);
+            }
+
+            if (dict.ContainsKey(TranslationConfigTypes.GetPluginConfigKey(Translator)))
+            {
+                PluginConfig = dict[TranslationConfigTypes.GetPluginConfigKey(Translator)]?.ToString() ?? "";
+            }
+        }
+
+        public TranslationSectionConfigViewModel()
+        {
+            this.RefreshCommand = ReactiveCommand.Create(() => { });
+            this.RefreshCommand.Merge(Observable.Return(Unit.Default))
+                .SelectMany(u => Observable.FromAsync(() => Task.Run(() => Refresh())))
+                .ToPropertyEx(this, x => x.TranslatorsAvailable);
+
+            this.WhenAnyValue(u => u.Translator, u => u.TranslatorsAvailable)
+                .Where((u) => u.Item1 != null && u.Item2 != null)
+                .Select(u => u.Item1)
+                .Where(x => !string.IsNullOrEmpty(x))
+                .DistinctUntilChanged()
+                .Select(x => TranslatorsAvailable.FirstOrDefault(u => u.Key == x))
+                .Select(x =>
+                {
+                    var plugin = x.Value;
+                    var editor = plugin?.CreateConfigEditor();
+                    var config = ConfigManagerFactory.Instance.Get<string>(
+                        TranslationConfigTypes.GetPluginConfigKey(Translator));
+                    editor?.LoadConfigString(config);
+                    return editor;
+                })
+                .ToPropertyEx(this, x => x.ConfigEditor);
+
+            this.WhenAnyValue(x => x.ConfigEditor)
+                .Subscribe(x =>
+                {
+                    var config = ConfigManagerFactory.Instance.Get<string>(
+                        TranslationConfigTypes.GetPluginConfigKey(Translator));
+                    PluginConfig = config;
+                });
+
+            this.WhenAnyValue(x => x.PluginConfig)
+                .Skip(1)
+                .Subscribe(config =>
+                {
+                    if (!string.IsNullOrEmpty(Translator))
+                    {
+                        ConfigManagerFactory.Instance.Apply(
+                            TranslationConfigTypes.GetPluginConfigKey(Translator),
                             config
                         );
                     }
