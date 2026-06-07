@@ -1,6 +1,9 @@
-﻿using Avalonia;
+using System;
+using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using TMSpeech.Core;
 
 namespace TMSpeech.GUI.Views;
 
@@ -29,18 +32,6 @@ public partial class CaptionView : UserControl
         set => SetValue(ShadowSizeProperty, value);
     }
 
-    // FontSize is already defined in Control
-    // So use Control.FontSize instead of creating new property
-
-    // public new static readonly StyledProperty<double> FontSizeProperty = AvaloniaProperty.Register<CaptionView, double>(
-    //     "FontSize");
-    //
-    // public new double FontSize
-    // {
-    //     get => GetValue(FontSizeProperty);
-    //     set => SetValue(FontSizeProperty, value);
-    // }
-
     public static readonly StyledProperty<Color> FontColorProperty = AvaloniaProperty.Register<CaptionView, Color>(
         "FontColor", Colors.White);
 
@@ -48,6 +39,16 @@ public partial class CaptionView : UserControl
     {
         get => GetValue(FontColorProperty);
         set => SetValue(FontColorProperty, value);
+    }
+
+    public static readonly StyledProperty<Color> TranslationFontColorProperty =
+        AvaloniaProperty.Register<CaptionView, Color>(
+            "TranslationFontColor", Colors.Yellow);
+
+    public Color TranslationFontColor
+    {
+        get => GetValue(TranslationFontColorProperty);
+        set => SetValue(TranslationFontColorProperty, value);
     }
 
     public static readonly StyledProperty<TextAlignment> TextAlignProperty =
@@ -60,7 +61,6 @@ public partial class CaptionView : UserControl
         set => SetValue(TextAlignProperty, value);
     }
 
-
     public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<CaptionView, string>(
         "Text");
 
@@ -68,5 +68,15 @@ public partial class CaptionView : UserControl
     {
         get => GetValue(TextProperty);
         set => SetValue(TextProperty, value);
+    }
+
+    public static readonly StyledProperty<IEnumerable<CaptionTextInfo>> CaptionLinesProperty =
+        AvaloniaProperty.Register<CaptionView, IEnumerable<CaptionTextInfo>>(
+            "CaptionLines", Array.Empty<CaptionTextInfo>());
+
+    public IEnumerable<CaptionTextInfo> CaptionLines
+    {
+        get => GetValue(CaptionLinesProperty);
+        set => SetValue(CaptionLinesProperty, value);
     }
 }

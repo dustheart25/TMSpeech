@@ -245,6 +245,10 @@ namespace TMSpeech.GUI.ViewModels
 
         [Reactive]
         [ConfigJsonValue]
+        public uint TranslationFontColor { get; set; }
+
+        [Reactive]
+        [ConfigJsonValue]
         public uint MouseHover { get; set; }
 
         [Reactive]

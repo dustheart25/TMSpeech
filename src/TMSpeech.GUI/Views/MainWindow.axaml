@@ -93,11 +93,13 @@
     <views:CaptionView Grid.Row="1" Margin="16"
                        FontWeight="Bold"
                        FontColor="{Binding CaptionStyle.FontColor}"
+                       TranslationFontColor="{Binding CaptionStyle.TranslationFontColor}"
                        FontSize="{Binding CaptionStyle.FontSize}"
                        FontFamily="{Binding CaptionStyle.FontFamily}"
                        TextAlign="{Binding CaptionStyle.TextAlign}"
                        ShadowColor="{Binding CaptionStyle.ShadowColor}"
                        ShadowSize="{Binding CaptionStyle.ShadowSize}"
+                       CaptionLines="{Binding CaptionLines}"
                        Text="{Binding Text}" />
   </Grid>
 </Window>

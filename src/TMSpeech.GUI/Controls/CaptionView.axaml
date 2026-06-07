@@ -30,13 +30,27 @@
           </Setter>
         </Style>
       </StackPanel.Styles>
-      <TextBlock FontWeight="Bold"
-                 Foreground="{Binding #root.FontColor,Converter={StaticResource ColorToBrushConverter}}"
-                 FontSize="{Binding #root.FontSize}"
-                 FontFamily="{Binding #root.FontFamily}"
-                 TextAlignment="{Binding #root.TextAlign}"
-                 Text="{Binding #root.Text}">
-      </TextBlock>
+      <ItemsControl ItemsSource="{Binding #root.CaptionLines}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel>
+              <TextBlock FontWeight="Bold"
+                         Foreground="{Binding #root.FontColor,Converter={StaticResource ColorToBrushConverter}}"
+                         FontSize="{Binding #root.FontSize}"
+                         FontFamily="{Binding #root.FontFamily}"
+                         TextAlignment="{Binding #root.TextAlign}"
+                         Text="{Binding OriginalText}" />
+              <TextBlock FontWeight="Bold"
+                         IsVisible="{Binding HasTranslatedText}"
+                         Foreground="{Binding #root.TranslationFontColor,Converter={StaticResource ColorToBrushConverter}}"
+                         FontSize="{Binding #root.FontSize}"
+                         FontFamily="{Binding #root.FontFamily}"
+                         TextAlignment="{Binding #root.TextAlign}"
+                         Text="{Binding TranslatedText}" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </StackPanel>
   </Canvas>
 </UserControl>

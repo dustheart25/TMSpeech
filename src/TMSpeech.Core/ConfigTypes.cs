@@ -34,6 +34,7 @@ public static class AppearanceConfigTypes
     public const string FontFamily = "appearance.FontFamily";
     public const string FontSize = "appearance.FontSize";
     public const string FontColor = "appearance.FontColor";
+    public const string TranslationFontColor = "appearance.TranslationFontColor";
     public const string MouseHover = "appearance.MouseHover";
     public const string TextAlign = "appearance.TextAlign";
     public const string BackgroundColor = "appearance.BackgroundColor";
@@ -54,6 +55,7 @@ public static class AppearanceConfigTypes
         { FontFamily, "Arial" },
         { FontSize, 48 },
         { FontColor, 0xFFFFFFFF },
+        { TranslationFontColor, 0xFFFFD966 },
         { MouseHover, 0x2709A9FF },
         { TextAlign, TextAlignEnum.Left },
         { BackgroundColor, 0x00000000 }

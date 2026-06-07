@@ -30,6 +30,9 @@ public class CaptionStyleViewModel : ViewModelBase
     public Color FontColor { get; }
 
     [ObservableAsProperty]
+    public Color TranslationFontColor { get; }
+
+    [ObservableAsProperty]
     public TextAlignment TextAlign { get; }
 
     [ObservableAsProperty]
@@ -73,6 +76,9 @@ public class CaptionStyleViewModel : ViewModelBase
         GetPropObservable<uint>(AppearanceConfigTypes.FontColor)
             .Select(Color.FromUInt32)
             .ToPropertyEx(this, x => x.FontColor);
+        GetPropObservable<uint>(AppearanceConfigTypes.TranslationFontColor)
+            .Select(Color.FromUInt32)
+            .ToPropertyEx(this, x => x.TranslationFontColor);
         GetPropObservable<int>(AppearanceConfigTypes.TextAlign)
             .Select(x => x switch
             {
@@ -123,6 +129,9 @@ public class MainViewModel : ViewModelBase
 
     [ObservableAsProperty]
     public string Text { get; }
+
+    [Reactive]
+    public IReadOnlyList<CaptionTextInfo> CaptionLines { get; set; } = Array.Empty<CaptionTextInfo>();
 
     [Reactive]
     public bool IsLocked { get; set; }
@@ -232,11 +241,40 @@ public class MainViewModel : ViewModelBase
             .Merge(Observable.Return("欢迎使用TMSpeech"))
             .ToPropertyEx(this, x => x.Text);
 
+        Observable.FromEventPattern<IReadOnlyList<CaptionTextInfo>>(
+                p => _jobManager.CaptionChanged += p,
+                p => _jobManager.CaptionChanged -= p)
+            .Select(x => x.EventArgs)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Merge(Observable.Return<IReadOnlyList<CaptionTextInfo>>(new[]
+            {
+                new CaptionTextInfo { OriginalText = "欢迎使用TMSpeech" }
+            }))
+            .Subscribe(x => CaptionLines = x);
+
         Observable.FromEventPattern<SpeechEventArgs>(
                 p => _jobManager.SentenceDone += p,
                 p => _jobManager.SentenceDone -= p)
             .Select(x => x.EventArgs.Text)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(x => { this.HistoryTexts.Add(x); });
+
+        Observable.FromEventPattern<TextInfo>(
+                p => _jobManager.HistoryTextChanged += p,
+                p => _jobManager.HistoryTextChanged -= p)
+            .Select(x => x.EventArgs)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(x =>
+            {
+                var index = HistoryTexts.IndexOf(x);
+                if (index >= 0)
+                {
+                    HistoryTexts[index] = x;
+                }
+                else
+                {
+                    HistoryTexts.Add(x);
+                }
+            });
     }
 }
