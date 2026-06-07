@@ -70,6 +70,21 @@ namespace TMSpeech.Core
         private string logFile;
         private string currentText = "";
         private readonly object _logLock = new();
+        private const int MaxCaptionSentences = 4;
+        private readonly object _captionLock = new();
+        private readonly List<CaptionSentence> _captionSentences = new();
+        private int _nextCaptionSentenceId = 1;
+
+        private class CaptionSentence
+        {
+            public int Id { get; init; }
+            public string OriginalText { get; init; } = "";
+            public string TranslatedText { get; set; } = "";
+
+            public string DisplayText => string.IsNullOrWhiteSpace(TranslatedText)
+                ? OriginalText
+                : $"{OriginalText}\n{TranslatedText}";
+        }
 
         private void InitAudioSource()
         {
@@ -154,7 +169,67 @@ namespace TMSpeech.Core
             }
         }
 
-        private void TranslateSentenceInBackground(string originalText)
+        private int AddCaptionSentence(string originalText)
+        {
+            lock (_captionLock)
+            {
+                var sentence = new CaptionSentence
+                {
+                    Id = _nextCaptionSentenceId++,
+                    OriginalText = originalText
+                };
+                _captionSentences.Add(sentence);
+                while (_captionSentences.Count > MaxCaptionSentences)
+                {
+                    _captionSentences.RemoveAt(0);
+                }
+
+                return sentence.Id;
+            }
+        }
+
+        private void UpdateCaptionTranslation(int sentenceId, string translatedText)
+        {
+            lock (_captionLock)
+            {
+                var sentence = _captionSentences.FirstOrDefault(x => x.Id == sentenceId);
+                if (sentence != null)
+                {
+                    sentence.TranslatedText = translatedText;
+                }
+            }
+        }
+
+        private void ClearCaptionSentences()
+        {
+            lock (_captionLock)
+            {
+                _captionSentences.Clear();
+            }
+        }
+
+        private void PublishCaptionText(string? liveText = null)
+        {
+            List<string> texts;
+            lock (_captionLock)
+            {
+                texts = _captionSentences.Select(x => x.DisplayText).ToList();
+            }
+
+            var textInProgress = liveText ?? currentText;
+            if (!string.IsNullOrWhiteSpace(textInProgress))
+            {
+                texts.Add(textInProgress);
+            }
+
+            var captionText = string.Join("\n", texts.TakeLast(MaxCaptionSentences));
+            OnTextChanged(new SpeechEventArgs
+            {
+                Text = new TextInfo(captionText)
+            });
+        }
+
+        private void TranslateSentenceInBackground(int sentenceId, string originalText)
         {
             var translator = _translator;
             if (translator == null || string.IsNullOrWhiteSpace(originalText)) return;
@@ -171,10 +246,8 @@ namespace TMSpeech.Core
                         AppendRecognitionLog($"译文: {translatedText}");
                     }
 
-                    OnTextChanged(new SpeechEventArgs
-                    {
-                        Text = new TextInfo($"{originalText}\n{translatedText}")
-                    });
+                    UpdateCaptionTranslation(sentenceId, translatedText);
+                    PublishCaptionText();
                 }
                 catch (Exception ex)
                 {
@@ -207,8 +280,10 @@ namespace TMSpeech.Core
 
             _disableInThisSentence = false;
             OnSentenceDone(args);
-            TranslateSentenceInBackground(args.Text.Text);
             currentText = "";
+            var sentenceId = AddCaptionSentence(args.Text.Text);
+            PublishCaptionText("");
+            TranslateSentenceInBackground(sentenceId, args.Text.Text);
         }
 
         private void OnRecognizerOnTextChanged(object? sender, SpeechEventArgs args)
@@ -224,11 +299,12 @@ namespace TMSpeech.Core
                 }
             }
 
-            OnTextChanged(args);
+            PublishCaptionText(args.Text.Text);
         }
 
         private void StartRecognize()
         {
+            ClearCaptionSentences();
             InitSensitiveWords();
             InitAudioSource();
             InitRecognizer();
