@@ -72,3 +72,10 @@ public record PluginConfigFormItemColor(
 public record PluginConfigFormItemMessage(
     string Message
 ) : PluginConfigFormItem("", "", "");
+
+public record PluginConfigFormItemButton(
+    string Key,
+    string Name,
+    string ButtonText,
+    string Description = ""
+) : PluginConfigFormItem(Key, Name, Description);

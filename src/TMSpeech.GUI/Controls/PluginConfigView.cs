@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -79,6 +80,9 @@ public class PluginConfigView : UserControl
                     case ComboBox cb:
                         cb.SelectedValue = value;
                         break;
+                    case CheckBox checkBox:
+                        checkBox.IsChecked = value is bool boolValue && boolValue;
+                        break;
                 }
             }
         }
@@ -91,6 +95,18 @@ public class PluginConfigView : UserControl
         if (ConfigEditor == null) return;
         foreach (var formItem in ConfigEditor.GetFormItems())
         {
+            if (formItem is PluginConfigFormItemMessage messageFormItem)
+            {
+                _container.Children.Add(new Label());
+                _container.Children.Add(new TextBlock
+                {
+                    Text = messageFormItem.Message,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brushes.Gray
+                });
+                continue;
+            }
+
             var label = new Label()
             {
                 Content = formItem.Name,
@@ -127,6 +143,41 @@ public class PluginConfigView : UserControl
                     UpdateValueAndNotify();
                 };
                 control = tb;
+            }
+            else if (formItem is PluginConfigFormItemButton buttonFormItem)
+            {
+                var button = new Button()
+                {
+                    Tag = formItem.Key,
+                    Content = buttonFormItem.ButtonText
+                };
+                button.Click += async (_, _) =>
+                {
+                    if (_updateMode != UpdateMode.ViewToBoth) return;
+
+                    button.IsEnabled = false;
+                    button.Content = "测试中...";
+                    await Task.Run(() => ConfigEditor.SetValue(formItem.Key, ""));
+                    UpdateValueAndNotify();
+                    GenerateControls();
+                    LoadValuesToView();
+                };
+                control = button;
+            }
+            else if (formItem is PluginConfigFormCheckBox)
+            {
+                var checkBox = new CheckBox()
+                {
+                    Tag = formItem.Key
+                };
+                checkBox.IsCheckedChanged += (_, _) =>
+                {
+                    if (_updateMode != UpdateMode.ViewToBoth) return;
+
+                    ConfigEditor.SetValue(formItem.Key, checkBox.IsChecked == true);
+                    UpdateValueAndNotify();
+                };
+                control = checkBox;
             }
             else if (formItem is PluginConfigFormItemFile fileFormItem)
             {

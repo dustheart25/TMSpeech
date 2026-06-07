@@ -228,6 +228,7 @@ public class MainViewModel : ViewModelBase
                 p => _jobManager.TextChanged += p,
                 p => _jobManager.TextChanged -= p)
             .Select(x => x.EventArgs.Text.Text)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Merge(Observable.Return("欢迎使用TMSpeech"))
             .ToPropertyEx(this, x => x.Text);
 
@@ -235,6 +236,7 @@ public class MainViewModel : ViewModelBase
                 p => _jobManager.SentenceDone += p,
                 p => _jobManager.SentenceDone -= p)
             .Select(x => x.EventArgs.Text)
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(x => { this.HistoryTexts.Add(x); });
     }
 }

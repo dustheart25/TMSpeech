@@ -170,6 +170,11 @@ namespace TMSpeech.Core
                     {
                         AppendRecognitionLog($"译文: {translatedText}");
                     }
+
+                    OnTextChanged(new SpeechEventArgs
+                    {
+                        Text = new TextInfo($"{originalText}\n{translatedText}")
+                    });
                 }
                 catch (Exception ex)
                 {

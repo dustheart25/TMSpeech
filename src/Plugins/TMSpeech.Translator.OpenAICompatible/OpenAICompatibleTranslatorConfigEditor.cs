@@ -5,8 +5,11 @@ namespace TMSpeech.Translator.OpenAICompatible;
 
 public class OpenAICompatibleTranslatorConfigEditor : IPluginConfigEditor
 {
+    private const string TestConnectionKey = "__testConnection";
+
     private readonly Dictionary<string, object> _values = new();
     private readonly List<PluginConfigFormItem> _formItems = new();
+    private string _testResult = "";
 
     public event EventHandler<EventArgs>? FormItemsUpdated;
     public event EventHandler<EventArgs>? ValueUpdated;
@@ -27,11 +30,20 @@ public class OpenAICompatibleTranslatorConfigEditor : IPluginConfigEditor
         _formItems.Add(new PluginConfigFormItemText("TargetLanguage", "目标语言"));
         _formItems.Add(new PluginConfigFormItemText("SystemPrompt", "系统提示词"));
         _formItems.Add(new PluginConfigFormItemText("UserPrompt", "用户提示词", "{text} 为原文，{targetLanguage} 为目标语言"));
+        _formItems.Add(new PluginConfigFormItemButton(TestConnectionKey, "连接测试", "测试 API Key 和模型"));
     }
 
     public IReadOnlyList<PluginConfigFormItem> GetFormItems()
     {
-        return _formItems.AsReadOnly();
+        if (string.IsNullOrEmpty(_testResult))
+        {
+            return _formItems.AsReadOnly();
+        }
+
+        return _formItems
+            .Concat(new[] { new PluginConfigFormItemMessage(_testResult) })
+            .ToList()
+            .AsReadOnly();
     }
 
     public IReadOnlyDictionary<string, object> GetAll()
@@ -41,6 +53,12 @@ public class OpenAICompatibleTranslatorConfigEditor : IPluginConfigEditor
 
     public void SetValue(string key, object value)
     {
+        if (key == TestConnectionKey)
+        {
+            TestConnection();
+            return;
+        }
+
         _values[key] = value;
         ValueUpdated?.Invoke(this, EventArgs.Empty);
     }
@@ -87,5 +105,22 @@ public class OpenAICompatibleTranslatorConfigEditor : IPluginConfigEditor
     private string GetString(string key)
     {
         return _values.TryGetValue(key, out var value) ? value?.ToString() ?? "" : "";
+    }
+
+    private void TestConnection()
+    {
+        try
+        {
+            var translator = new OpenAICompatibleTranslator();
+            translator.LoadConfig(GenerateConfig());
+            var result = translator.Translate("Hello, this is a connection test.").Trim();
+            _testResult = string.IsNullOrWhiteSpace(result)
+                ? "测试成功：接口已返回，但内容为空。"
+                : $"测试成功：{result}";
+        }
+        catch (Exception ex)
+        {
+            _testResult = $"测试失败：{ex.Message}";
+        }
     }
 }
