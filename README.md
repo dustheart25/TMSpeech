@@ -1,5 +1,26 @@
 # TMSpeech
 
+## Fork 增强版说明
+
+这是 `dustheart25/TMSpeech` fork 的增强版本，基于原项目增加了双语字幕和 OpenAI-compatible 翻译能力。
+
+本 fork 版本新增：
+
+- OpenAI-compatible 翻译插件，支持自定义 Base URL、模型、API Key 和目标语言。
+- API Key 密码输入框和翻译器测试按钮。
+- 双语字幕显示：识别文字在上，翻译文字在下。
+- 识别文字和翻译文字可分别设置颜色。
+- 英文 SherpaOnnx 识别结果自动转为小写，便于阅读。
+- 字幕窗口保留最近 4 句双语字幕。
+- 识别历史记录会在译文返回后更新为原文加译文。
+- 停止识别后自动导出双语 `.txt` 和 `.srt` 字幕文件。
+
+下载本 fork 的增强版：
+
+- [v0.4.3-translation.1 Release](https://github.com/dustheart25/TMSpeech/releases/tag/v0.4.3-translation.1)
+
+注意：API Key 等个人配置保存在本机 `%APPDATA%\TMSpeech\config.json`，不会被提交到 GitHub，也不会包含在 Release 压缩包中。
+
 (旧版)视频演示：https://www.bilibili.com/video/BV1rX4y1p7Nx/
 
 关键词：语音转文字，实时字幕，会议语音识别，歌词字幕展示，识别历史记录查看
