@@ -92,6 +92,16 @@
       <FilesToDelete Include="$(PluginsOutputDirAbs)\TMSpeech.Core.*" />
     </ItemGroup>
     <Delete Files="@(FilesToDelete)"/>
+
+    <ItemGroup>
+      <PluginRuntimeFile Include="$(OutDir)Microsoft.DiaSymReader.Native.amd64.dll"
+                         Condition="Exists('$(OutDir)Microsoft.DiaSymReader.Native.amd64.dll')" />
+      <PluginRuntimeFolders Include="@(PluginProjects->'$(PluginsOutputDirAbs)\%(OutPutDir)\')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginRuntimeFile)"
+          DestinationFolder="%(PluginRuntimeFolders.Identity)"
+          SkipUnchangedFiles="true"
+          Condition="'@(PluginRuntimeFile)' != ''" />
   </Target>
   
   <Target Name="PublishPlugins" AfterTargets="PrepareForPublish" Condition="'$(BuildPlugins)'=='true'">
