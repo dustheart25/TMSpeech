@@ -112,6 +112,22 @@ public class PluginConfigView : UserControl
                 };
                 control = tb;
             }
+            else if (formItem is PluginConfigFormItemPassword)
+            {
+                var tb = new TextBox()
+                {
+                    Tag = formItem.Key,
+                    PasswordChar = '*'
+                };
+                tb.TextChanged += (_, _) =>
+                {
+                    if (_updateMode != UpdateMode.ViewToBoth) return;
+
+                    ConfigEditor.SetValue(formItem.Key, tb.Text);
+                    UpdateValueAndNotify();
+                };
+                control = tb;
+            }
             else if (formItem is PluginConfigFormItemFile fileFormItem)
             {
                 var fp = new FilePicker()
