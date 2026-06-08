@@ -30,6 +30,9 @@ public class CaptionStyleViewModel : ViewModelBase
     public Color FontColor { get; }
 
     [ObservableAsProperty]
+    public Color CorrectedFontColor { get; }
+
+    [ObservableAsProperty]
     public Color TranslationFontColor { get; }
 
     [ObservableAsProperty]
@@ -76,6 +79,9 @@ public class CaptionStyleViewModel : ViewModelBase
         GetPropObservable<uint>(AppearanceConfigTypes.FontColor)
             .Select(Color.FromUInt32)
             .ToPropertyEx(this, x => x.FontColor);
+        GetPropObservable<uint>(AppearanceConfigTypes.CorrectedFontColor)
+            .Select(Color.FromUInt32)
+            .ToPropertyEx(this, x => x.CorrectedFontColor);
         GetPropObservable<uint>(AppearanceConfigTypes.TranslationFontColor)
             .Select(Color.FromUInt32)
             .ToPropertyEx(this, x => x.TranslationFontColor);

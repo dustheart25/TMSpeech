@@ -244,6 +244,10 @@ namespace TMSpeech.GUI.ViewModels
         public uint FontColor { get; set; }
 
         [Reactive]
+        [ConfigJsonValue(AppearanceConfigTypes.CorrectedFontColor)]
+        public uint CorrectedFontColor { get; set; }
+
+        [Reactive]
         [ConfigJsonValue]
         public uint TranslationFontColor { get; set; }
 

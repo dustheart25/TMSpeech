@@ -93,6 +93,7 @@
     <views:CaptionView Grid.Row="1" Margin="16"
                        FontWeight="Bold"
                        FontColor="{Binding CaptionStyle.FontColor}"
+                       CorrectedFontColor="{Binding CaptionStyle.CorrectedFontColor}"
                        TranslationFontColor="{Binding CaptionStyle.TranslationFontColor}"
                        FontSize="{Binding CaptionStyle.FontSize}"
                        FontFamily="{Binding CaptionStyle.FontFamily}"

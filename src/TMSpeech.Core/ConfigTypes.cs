@@ -34,6 +34,7 @@ public static class AppearanceConfigTypes
     public const string FontFamily = "appearance.FontFamily";
     public const string FontSize = "appearance.FontSize";
     public const string FontColor = "appearance.FontColor";
+    public const string CorrectedFontColor = "appearance.CorrectedFontColor";
     public const string TranslationFontColor = "appearance.TranslationFontColor";
     public const string CaptionCacheCount = "appearance.CaptionCacheCount";
     public const string MouseHover = "appearance.MouseHover";
@@ -56,6 +57,7 @@ public static class AppearanceConfigTypes
         { FontFamily, "Arial" },
         { FontSize, 48 },
         { FontColor, 0xFFFFFFFF },
+        { CorrectedFontColor, 0xFF9CDCFE },
         { TranslationFontColor, 0xFFFFD966 },
         { CaptionCacheCount, 4 },
         { MouseHover, 0x2709A9FF },

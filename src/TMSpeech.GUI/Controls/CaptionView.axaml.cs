@@ -41,6 +41,16 @@ public partial class CaptionView : UserControl
         set => SetValue(FontColorProperty, value);
     }
 
+    public static readonly StyledProperty<Color> CorrectedFontColorProperty =
+        AvaloniaProperty.Register<CaptionView, Color>(
+            "CorrectedFontColor", Colors.LightSkyBlue);
+
+    public Color CorrectedFontColor
+    {
+        get => GetValue(CorrectedFontColorProperty);
+        set => SetValue(CorrectedFontColorProperty, value);
+    }
+
     public static readonly StyledProperty<Color> TranslationFontColorProperty =
         AvaloniaProperty.Register<CaptionView, Color>(
             "TranslationFontColor", Colors.Yellow);

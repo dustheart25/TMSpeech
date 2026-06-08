@@ -106,6 +106,9 @@
           <Label>字体颜色</Label>
           <ColorPicker Color="{Binding FontColor, Converter={StaticResource IntToColorConverter}}" />
 
+          <Label>纠错文字颜色</Label>
+          <ColorPicker Color="{Binding CorrectedFontColor, Converter={StaticResource IntToColorConverter}}" />
+
           <Label>翻译文字颜色</Label>
           <ColorPicker Color="{Binding TranslationFontColor, Converter={StaticResource IntToColorConverter}}" />
 
