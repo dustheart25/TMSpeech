@@ -60,8 +60,8 @@
            -->
           <Label IsVisible="False">开机启动</Label>
           <CheckBox IsVisible="False" IsChecked="{Binding LaunchOnStartup,Mode=TwoWay}" />
-          <Label>启动开始识别</Label>
-          <CheckBox IsChecked="{Binding StartOnLaunch,Mode=TwoWay}" />
+          <Label IsVisible="False">启动开始识别</Label>
+          <CheckBox IsVisible="False" IsChecked="{Binding StartOnLaunch,Mode=TwoWay}" />
           <Label>识别日志文件夹</Label>
           <TextBox Text="{Binding ResultLogPath,Mode=TwoWay}"></TextBox>
           <Label IsVisible="False">自动更新</Label>

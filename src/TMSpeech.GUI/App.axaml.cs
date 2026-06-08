@@ -101,25 +101,9 @@ public partial class App : Application
                 });
             }
 
-            // Run recognizer if config is set.
-            try
+            if (ConfigManagerFactory.Instance.Get<bool>(GeneralConfigTypes.StartOnLaunch))
             {
-                if (ConfigManagerFactory.Instance.Get<bool>(GeneralConfigTypes.StartOnLaunch))
-                {
-                    Dispatcher.UIThread.Post(() => { _mainWindow.ViewModel.PlayCommand.Execute(); });
-                }
-            }
-            catch (Exception ex)
-            {
-                Dispatcher.UIThread.Post(async () =>
-                {
-                    await MessageBoxManager.GetMessageBoxStandard(
-                        "自动启动失败",
-                        $"无法自动启动识别器。\n\n错误详情：{ex.Message}",
-                        ButtonEnum.Ok,
-                        Icon.Warning
-                    ).ShowAsync();
-                });
+                ConfigManagerFactory.Instance.Apply(GeneralConfigTypes.StartOnLaunch, false);
             }
         }
     }

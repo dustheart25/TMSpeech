@@ -16,7 +16,7 @@ public static class GeneralConfigTypes
     {
         { Language, "zh-cn" },
         { LaunchOnStartup, false },
-        { StartOnLaunch, true },
+        { StartOnLaunch, false },
         { AutoUpdate, true },
         { ResultLogPath, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TMSpeechLogs") },
         { MainWindowLocation, new List<int>() }
