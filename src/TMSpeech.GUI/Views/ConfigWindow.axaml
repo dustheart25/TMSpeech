@@ -109,6 +109,9 @@
           <Label>翻译文字颜色</Label>
           <ColorPicker Color="{Binding TranslationFontColor, Converter={StaticResource IntToColorConverter}}" />
 
+          <Label>字幕缓存句数</Label>
+          <NumericUpDown Value="{Binding CaptionCacheCount}" Minimum="1" Maximum="10" />
+
           <Label>鼠标悬停背景</Label>
           <ColorPicker Color="{Binding MouseHover, Converter={StaticResource IntToColorConverter}}" />
           
@@ -242,6 +245,8 @@
           <controls:AutoGrid RowCount="100" ColumnDefinitions="100,*">
             <Label>启用翻译</Label>
             <CheckBox IsChecked="{Binding Enabled,Mode=TwoWay}" />
+            <Label>启用大模型纠错</Label>
+            <CheckBox IsChecked="{Binding EnableCorrection,Mode=TwoWay}" />
             <Label>保存译文</Label>
             <CheckBox IsChecked="{Binding SaveTranslationToLog,Mode=TwoWay}" />
             <Label>翻译器</Label>

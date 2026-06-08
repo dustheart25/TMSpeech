@@ -69,12 +69,14 @@ namespace TMSpeech.Core
         private IAudioSource? _audioSource;
         private IRecognizer? _recognizer;
         private ITranslator? _translator;
+        private bool _enableTranslation;
+        private bool _enableCorrection;
         private HashSet<string> _sensitiveWords;
         private bool _disableInThisSentence = false;
         private string logFile;
         private string currentText = "";
         private readonly object _logLock = new();
-        private const int MaxCaptionSentences = 4;
+        private const int DefaultCaptionCacheCount = 4;
         private readonly object _captionLock = new();
         private readonly List<CaptionSentence> _captionSentences = new();
         private readonly object _recordLock = new();
@@ -89,11 +91,10 @@ namespace TMSpeech.Core
         {
             public int Id { get; init; }
             public string OriginalText { get; init; } = "";
+            public string CorrectedText { get; set; } = "";
             public string TranslatedText { get; set; } = "";
 
-            public string DisplayText => string.IsNullOrWhiteSpace(TranslatedText)
-                ? OriginalText
-                : $"{OriginalText}\n{TranslatedText}";
+            public string DisplayText => BuildDisplayText(OriginalText, CorrectedText, TranslatedText);
         }
 
         private class RecognitionRecord
@@ -103,12 +104,39 @@ namespace TMSpeech.Core
             public DateTime StartTime { get; init; }
             public DateTime EndTime { get; init; }
             public string OriginalText { get; init; } = "";
+            public string CorrectedText { get; set; } = "";
             public string TranslatedText { get; set; } = "";
             public TextInfo? HistoryText { get; init; }
 
-            public string DisplayText => string.IsNullOrWhiteSpace(TranslatedText)
-                ? OriginalText
-                : $"{OriginalText}\n{TranslatedText}";
+            public string DisplayText => BuildDisplayText(OriginalText, CorrectedText, TranslatedText);
+        }
+
+        private static bool HasMeaningfulCorrection(string originalText, string correctedText)
+        {
+            return !string.IsNullOrWhiteSpace(correctedText)
+                   && !string.Equals(originalText.Trim(), correctedText.Trim(), StringComparison.Ordinal);
+        }
+
+        private static string BuildDisplayText(string originalText, string correctedText, string translatedText)
+        {
+            var lines = new List<string> { originalText };
+            if (HasMeaningfulCorrection(originalText, correctedText))
+            {
+                lines.Add(correctedText);
+            }
+
+            if (!string.IsNullOrWhiteSpace(translatedText))
+            {
+                lines.Add(translatedText);
+            }
+
+            return string.Join("\n", lines);
+        }
+
+        private int GetCaptionCacheCount()
+        {
+            var count = ConfigManagerFactory.Instance.Get<int>(AppearanceConfigTypes.CaptionCacheCount);
+            return Math.Clamp(count <= 0 ? DefaultCaptionCacheCount : count, 1, 10);
         }
 
         private void InitAudioSource()
@@ -164,7 +192,9 @@ namespace TMSpeech.Core
         private void InitTranslator()
         {
             _translator = null;
-            if (!ConfigManagerFactory.Instance.Get<bool>(TranslationConfigTypes.Enabled)) return;
+            _enableTranslation = ConfigManagerFactory.Instance.Get<bool>(TranslationConfigTypes.Enabled);
+            _enableCorrection = ConfigManagerFactory.Instance.Get<bool>(TranslationConfigTypes.EnableCorrection);
+            if (!_enableTranslation && !_enableCorrection) return;
 
             var configTranslator = ConfigManagerFactory.Instance.Get<string>(TranslationConfigTypes.Translator);
             if (string.IsNullOrEmpty(configTranslator))
@@ -204,7 +234,8 @@ namespace TMSpeech.Core
                     OriginalText = originalText
                 };
                 _captionSentences.Add(sentence);
-                while (_captionSentences.Count > MaxCaptionSentences)
+                var captionCacheCount = GetCaptionCacheCount();
+                while (_captionSentences.Count > captionCacheCount)
                 {
                     _captionSentences.RemoveAt(0);
                 }
@@ -239,7 +270,7 @@ namespace TMSpeech.Core
             }
         }
 
-        private void UpdateCaptionTranslation(int sentenceId, string translatedText)
+        private void UpdateCaptionTranslation(int sentenceId, TranslationResult result)
         {
             TextInfo? updatedHistoryText = null;
             lock (_captionLock)
@@ -247,7 +278,8 @@ namespace TMSpeech.Core
                 var sentence = _captionSentences.FirstOrDefault(x => x.Id == sentenceId);
                 if (sentence != null)
                 {
-                    sentence.TranslatedText = translatedText;
+                    sentence.CorrectedText = result.CorrectedText;
+                    sentence.TranslatedText = result.TranslatedText;
                 }
             }
 
@@ -256,7 +288,8 @@ namespace TMSpeech.Core
                 var record = _recognitionRecords.FirstOrDefault(x => x.Id == sentenceId);
                 if (record != null)
                 {
-                    record.TranslatedText = translatedText;
+                    record.CorrectedText = result.CorrectedText;
+                    record.TranslatedText = result.TranslatedText;
                     if (record.HistoryText != null)
                     {
                         record.HistoryText.Text = record.DisplayText;
@@ -304,6 +337,7 @@ namespace TMSpeech.Core
                     .Select(x => new CaptionTextInfo
                     {
                         OriginalText = x.OriginalText,
+                        CorrectedText = x.CorrectedText,
                         TranslatedText = x.TranslatedText
                     })
                     .ToList();
@@ -318,39 +352,71 @@ namespace TMSpeech.Core
                 });
             }
 
-            captions = captions.TakeLast(MaxCaptionSentences).ToList();
+            captions = captions.TakeLast(GetCaptionCacheCount()).ToList();
             OnCaptionChanged(captions);
             var captionText = string.Join("\n", captions.Select(x =>
-                string.IsNullOrWhiteSpace(x.TranslatedText)
-                    ? x.OriginalText
-                    : $"{x.OriginalText}\n{x.TranslatedText}"));
+                BuildDisplayText(x.OriginalText, x.CorrectedText, x.TranslatedText)));
             OnTextChanged(new SpeechEventArgs
             {
                 Text = new TextInfo(captionText)
             });
         }
 
-        private void TranslateSentenceInBackground(int sentenceId, string originalText)
+        private void ProcessSentenceInBackground(int sentenceId, string originalText)
         {
             var translator = _translator;
+            var enableTranslation = _enableTranslation;
+            var enableCorrection = _enableCorrection;
             if (translator == null || string.IsNullOrWhiteSpace(originalText)) return;
+            if (!enableTranslation && !enableCorrection) return;
 
             var translationTask = Task.Run(() =>
             {
                 try
                 {
-                    var translatedText = translator.Translate(originalText)?.Trim();
-                    if (string.IsNullOrWhiteSpace(translatedText)) return;
+                    var result = translator is ITextCorrectionTranslator correctionTranslator
+                        ? correctionTranslator.ProcessText(originalText, new TextProcessingOptions
+                        {
+                            EnableCorrection = enableCorrection,
+                            EnableTranslation = enableTranslation
+                        })
+                        : new TranslationResult
+                        {
+                            OriginalText = originalText,
+                            TranslatedText = enableTranslation
+                                ? translator.Translate(originalText)?.Trim() ?? ""
+                                : ""
+                        };
 
-                    AppendRecognitionLog($"译文: {translatedText}");
+                    result.OriginalText = string.IsNullOrWhiteSpace(result.OriginalText)
+                        ? originalText
+                        : result.OriginalText.Trim();
+                    result.CorrectedText = result.CorrectedText?.Trim() ?? "";
+                    result.TranslatedText = result.TranslatedText?.Trim() ?? "";
 
-                    UpdateCaptionTranslation(sentenceId, translatedText);
+                    if (string.IsNullOrWhiteSpace(result.CorrectedText)
+                        && string.IsNullOrWhiteSpace(result.TranslatedText))
+                    {
+                        return;
+                    }
+
+                    if (HasMeaningfulCorrection(originalText, result.CorrectedText))
+                    {
+                        AppendRecognitionLog($"纠错: {result.CorrectedText}");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(result.TranslatedText))
+                    {
+                        AppendRecognitionLog($"译文: {result.TranslatedText}");
+                    }
+
+                    UpdateCaptionTranslation(sentenceId, result);
                     PublishCaptionText();
                 }
                 catch (Exception ex)
                 {
-                    NotificationManager.Instance.Notify($"翻译失败：\n{ex.Message}", "翻译失败", NotificationType.Warning);
-                    System.Diagnostics.Debug.WriteLine($"Failed to translate recognition text: {ex.Message}");
+                    NotificationManager.Instance.Notify($"文本处理失败：\n{ex.Message}", "文本处理失败", NotificationType.Warning);
+                    System.Diagnostics.Debug.WriteLine($"Failed to process recognition text: {ex.Message}");
                 }
             });
 
@@ -402,10 +468,14 @@ namespace TMSpeech.Core
             foreach (var record in records)
             {
                 txtBuilder.AppendLine($"[{record.EndTime:T}]");
-                txtBuilder.AppendLine(record.OriginalText);
+                txtBuilder.AppendLine($"原识别: {record.OriginalText}");
+                if (HasMeaningfulCorrection(record.OriginalText, record.CorrectedText))
+                {
+                    txtBuilder.AppendLine($"纠错: {record.CorrectedText}");
+                }
                 if (!string.IsNullOrWhiteSpace(record.TranslatedText))
                 {
-                    txtBuilder.AppendLine(record.TranslatedText);
+                    txtBuilder.AppendLine($"译文: {record.TranslatedText}");
                 }
                 txtBuilder.AppendLine();
             }
@@ -418,11 +488,7 @@ namespace TMSpeech.Core
                 srtBuilder.AppendLine(record.Index.ToString());
                 srtBuilder.AppendLine(
                     $"{FormatSrtTime(record.StartTime - _recognitionStartedAt)} --> {FormatSrtTime(record.EndTime - _recognitionStartedAt)}");
-                srtBuilder.AppendLine(record.OriginalText);
-                if (!string.IsNullOrWhiteSpace(record.TranslatedText))
-                {
-                    srtBuilder.AppendLine(record.TranslatedText);
-                }
+                srtBuilder.AppendLine(record.DisplayText);
                 srtBuilder.AppendLine();
             }
 
@@ -462,7 +528,7 @@ namespace TMSpeech.Core
             OnSentenceDone(args);
             AddCaptionSentence(sentenceId, args.Text.Text);
             PublishCaptionText("");
-            TranslateSentenceInBackground(sentenceId, args.Text.Text);
+            ProcessSentenceInBackground(sentenceId, args.Text.Text);
         }
 
         private void OnRecognizerOnTextChanged(object? sender, SpeechEventArgs args)

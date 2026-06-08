@@ -248,6 +248,10 @@ namespace TMSpeech.GUI.ViewModels
         public uint TranslationFontColor { get; set; }
 
         [Reactive]
+        [ConfigJsonValue(AppearanceConfigTypes.CaptionCacheCount)]
+        public int CaptionCacheCount { get; set; } = 4;
+
+        [Reactive]
         [ConfigJsonValue]
         public uint MouseHover { get; set; }
 
@@ -504,6 +508,10 @@ namespace TMSpeech.GUI.ViewModels
         public bool Enabled { get; set; } = false;
 
         [Reactive]
+        [ConfigJsonValue(TranslationConfigTypes.EnableCorrection)]
+        public bool EnableCorrection { get; set; } = false;
+
+        [Reactive]
         [ConfigJsonValue(TranslationConfigTypes.SaveTranslationToLog)]
         public bool SaveTranslationToLog { get; set; } = true;
 
@@ -535,6 +543,7 @@ namespace TMSpeech.GUI.ViewModels
             return new Dictionary<string, object>
             {
                 { TranslationConfigTypes.Enabled, Enabled },
+                { TranslationConfigTypes.EnableCorrection, EnableCorrection },
                 { TranslationConfigTypes.Translator, Translator },
                 { TranslationConfigTypes.SaveTranslationToLog, SaveTranslationToLog },
             };
@@ -545,6 +554,11 @@ namespace TMSpeech.GUI.ViewModels
             if (dict.ContainsKey(TranslationConfigTypes.Enabled))
             {
                 Enabled = (bool)(ChangeType(dict[TranslationConfigTypes.Enabled], typeof(bool)) ?? false);
+            }
+
+            if (dict.ContainsKey(TranslationConfigTypes.EnableCorrection))
+            {
+                EnableCorrection = (bool)(ChangeType(dict[TranslationConfigTypes.EnableCorrection], typeof(bool)) ?? false);
             }
 
             if (dict.ContainsKey(TranslationConfigTypes.Translator))

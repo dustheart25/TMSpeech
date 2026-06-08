@@ -35,6 +35,7 @@ public static class AppearanceConfigTypes
     public const string FontSize = "appearance.FontSize";
     public const string FontColor = "appearance.FontColor";
     public const string TranslationFontColor = "appearance.TranslationFontColor";
+    public const string CaptionCacheCount = "appearance.CaptionCacheCount";
     public const string MouseHover = "appearance.MouseHover";
     public const string TextAlign = "appearance.TextAlign";
     public const string BackgroundColor = "appearance.BackgroundColor";
@@ -56,6 +57,7 @@ public static class AppearanceConfigTypes
         { FontSize, 48 },
         { FontColor, 0xFFFFFFFF },
         { TranslationFontColor, 0xFFFFD966 },
+        { CaptionCacheCount, 4 },
         { MouseHover, 0x2709A9FF },
         { TextAlign, TextAlignEnum.Left },
         { BackgroundColor, 0x00000000 }
@@ -117,12 +119,14 @@ public static class TranslationConfigTypes
     public const string SectionName = "translation";
 
     public const string Enabled = "translation.Enabled";
+    public const string EnableCorrection = "translation.EnableCorrection";
     public const string Translator = "translation.source";
     public const string SaveTranslationToLog = "translation.SaveTranslationToLog";
 
     private static Dictionary<string, object> _defaultConfig => new()
     {
         { Enabled, false },
+        { EnableCorrection, false },
         { Translator, "" },
         { SaveTranslationToLog, true }
     };

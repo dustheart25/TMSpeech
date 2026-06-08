@@ -41,6 +41,13 @@
                          TextAlignment="{Binding #root.TextAlign}"
                          Text="{Binding OriginalText}" />
               <TextBlock FontWeight="Bold"
+                         IsVisible="{Binding HasCorrectedText}"
+                         Foreground="{Binding #root.FontColor,Converter={StaticResource ColorToBrushConverter}}"
+                         FontSize="{Binding #root.FontSize}"
+                         FontFamily="{Binding #root.FontFamily}"
+                         TextAlignment="{Binding #root.TextAlign}"
+                         Text="{Binding CorrectedText}" />
+              <TextBlock FontWeight="Bold"
                          IsVisible="{Binding HasTranslatedText}"
                          Foreground="{Binding #root.TranslationFontColor,Converter={StaticResource ColorToBrushConverter}}"
                          FontSize="{Binding #root.FontSize}"
